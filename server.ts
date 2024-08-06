@@ -90,21 +90,41 @@ const server = Bun.serve({
 
         if (!inserted) return new Response("User couldn't be inserted");
 
-        return new Response("User inserted successfully!");
+        return new Response("User inserted successfully!", { status: 201 });
       } catch (error: any) {
         return new Response(error);
       }
     }
 
-    if (method === "PATCH" && pathname === "/api/update_user") {
-      // Update user
+    if (method === "PATCH" && pathname.includes("/api/update_user")) {
+      if (!req.body)
+        return new Response("Request body not provided", { status: 404 });
+
+      try {
+        const { id, email, password } = await req.json();
+
+        const dataForUser = { id, email, password };
+        const updatedUser = user.updateUser(dataForUser);
+
+        return new Response(updatedUser, { status: 200 });
+      } catch (error: any) {
+        return new Response(error);
+      }
     }
 
-    if (method === "DELETE" && pathname === "/api/delete_user") {
-      // Delete user
+    if (method === "DELETE" && pathname.includes("/api/delete_user")) {
+      const id = searchParams.get("id");
+      if (!id) return new Response("User id not provided", { status: 404 });
+
+      const found = user.getUserById(id);
+      if (!found) return new Response("User not found", { status: 404 });
+
+      const deletedUser = user.deleteUser(id);
+
+      return new Response(deletedUser);
     }
 
-    return new Response("Not Found", { status: 404 });
+    return new Response("Route Not Found", { status: 404 });
   },
 });
 

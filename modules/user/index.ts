@@ -2,7 +2,7 @@ import { Database } from "bun:sqlite";
 import type { TUser } from "./user.types";
 
 export class User {
-  constructor(private db: Database) { }
+  constructor(private db: Database) {}
 
   createTableIfNotExists() {
     const query = this.db.query(
@@ -54,7 +54,7 @@ export class User {
     const result = query.run(user);
     let msg = "User not found";
     if (result.changes) msg = `User with id(${user.id}) successfully updated!`;
-    console.log(msg);
+    return msg;
   }
 
   deleteUser(id: string) {
@@ -63,6 +63,6 @@ export class User {
     query.finalize();
     let msg = `User with id(${id}) was not found`;
     if (result.changes) msg = `User with id(${id}) has been deleted!`;
-    console.log(msg);
+    return msg;
   }
 }
