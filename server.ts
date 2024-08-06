@@ -5,7 +5,7 @@ const db = new Database("./ResumeDB.sqlite", { strict: true });
 
 const user = new User(db);
 
-//user.createTableIfNotExists();
+user.createTableIfNotExists();
 
 //user.dropTableIfExists();
 
@@ -58,7 +58,7 @@ const server = Bun.serve({
     const url = new URL(req.url);
     const searchParams = new URLSearchParams(url.search);
 
-    if (method === "GET" && pathname === "/api/users") {
+    if (method === "GET" && pathname.includes("/api/users")) {
       const users = user.getUsers();
       if (!users) return new Response("No users found");
       return new Response(JSON.stringify(users), {
@@ -78,8 +78,22 @@ const server = Bun.serve({
       });
     }
 
-    if (method === "POST" && pathname === "/api/create_user") {
-      // Create user
+    if (method === "POST" && pathname.includes("/api/create_user")) {
+      if (!req.body)
+        return new Response("Request body not provided", { status: 404 });
+
+      try {
+        const { id, email, password } = await req.json();
+
+        const newUser = { id, email, password };
+        const inserted = user.insertUser(newUser);
+
+        if (!inserted) return new Response("User couldn't be inserted");
+
+        return new Response("User inserted successfully!");
+      } catch (error: any) {
+        return new Response(error);
+      }
     }
 
     if (method === "PATCH" && pathname === "/api/update_user") {

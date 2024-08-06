@@ -2,7 +2,7 @@ import { Database } from "bun:sqlite";
 import type { TUser } from "./user.types";
 
 export class User {
-  constructor(private db: Database) {}
+  constructor(private db: Database) { }
 
   createTableIfNotExists() {
     const query = this.db.query(
@@ -35,18 +35,12 @@ export class User {
     return result;
   }
 
-  insertUsers(users: Array<TUser>) {
-    const query = this.db.prepare(
+  insertUser(user: TUser) {
+    const query = this.db.query(
       "INSERT INTO User (id, email, password) VALUES ($id, $email, $password)",
     );
-
-    const transaction = this.db.transaction((users) => {
-      for (const user of users) query.run(user);
-    });
-
-    transaction(users);
-
-    console.log(`Inserted ${users.length} records!`);
+    const result = query.run(user);
+    return result.changes;
   }
 
   updateUser(user: TUser) {
