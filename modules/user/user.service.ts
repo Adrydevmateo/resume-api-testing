@@ -11,7 +11,8 @@ export class UserService {
       `CREATE TABLE IF NOT EXISTS User (
         id TEXT PRIMARY KEY,
         email TEXT NOT NULL,
-        password TEXT NOT NULL
+        password TEXT NOT NULL,
+        token TEXT NOT NULL
       )`,
     );
 
@@ -23,6 +24,12 @@ export class UserService {
     const query = this.db.query("DROP TABLE IF EXISTS User");
     query.run();
     query.finalize();
+  }
+
+  isAuthorized(id: string, token: string) {
+    const found: any = this.getUserById(id);
+    if (`Bearer ${found.token}` === token) return true;
+    return false;
   }
 
   getUsers() {
@@ -39,9 +46,13 @@ export class UserService {
 
   insertUser(user: TUser) {
     const query = this.db.query(
-      "INSERT INTO User (id, email, password) VALUES ($id, $email, $password)",
+      "INSERT INTO User (id, email, password, token) VALUES ($id, $email, $password, $token)",
     );
-    const result = query.run(user);
+    const data = {
+      ...user,
+      token: crypto.randomUUID(),
+    };
+    const result = query.run(data);
     return result.changes;
   }
 

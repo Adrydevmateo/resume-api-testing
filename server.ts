@@ -34,7 +34,7 @@ const server = Bun.serve({
       return await userController.updateUser(req);
 
     if (method === "DELETE" && pathname.includes("/api/delete_user"))
-      return userController.deleteUser(searchParams);
+      return userController.deleteUser(req.headers, searchParams);
 
     return new Response("Route Not Found", { status: 404 });
   },

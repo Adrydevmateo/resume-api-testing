@@ -3,6 +3,7 @@ import type { UserService } from "./user.service";
 export class UserController {
   constructor(private userService: UserService) {}
 
+  // TODO: Return only the email
   getUsers(): Response {
     const users = this.userService.getUsers();
     if (!users) return new Response("No users found");
@@ -57,9 +58,15 @@ export class UserController {
     }
   }
 
-  deleteUser(searchParams: URLSearchParams): Response {
+  deleteUser(headers: Headers, searchParams: URLSearchParams): Response {
     const id = searchParams.get("id");
     if (!id) return new Response("User id not provided", { status: 404 });
+
+    const token = headers.get("authorization");
+    if (!token) return new Response("Token was not provided", { status: 404 });
+
+    const authorized = this.userService.isAuthorized(id, token);
+    if (!authorized) return new Response("User not authorized");
 
     const found = this.userService.getUserById(id);
     if (!found) return new Response("User not found", { status: 404 });
