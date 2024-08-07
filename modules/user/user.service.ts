@@ -1,8 +1,10 @@
 import { Database } from "bun:sqlite";
 import type { TUser } from "./user.types";
 
-export class User {
-  constructor(private db: Database) {}
+export class UserService {
+  constructor(private db: Database) {
+    this.createTableIfNotExists();
+  }
 
   createTableIfNotExists() {
     const query = this.db.query(
@@ -51,7 +53,18 @@ export class User {
       WHERE id = $id
     `);
 
-    const result = query.run(user);
+    const found: any = this.getUserById(user.id);
+
+    const data = {
+      id: user.id,
+      email: user.email,
+      password: user.password,
+    };
+
+    if (user.email === found.email) data.email = found.email;
+    if (user.password === found.password) data.password = found.password;
+
+    const result = query.run(data);
     let msg = "User not found";
     if (result.changes) msg = `User with id(${user.id}) successfully updated!`;
     return msg;

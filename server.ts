@@ -1,48 +1,11 @@
 import { Database } from "bun:sqlite";
-import { User } from "./modules/user";
+import { UserService } from "./modules/user/user.service";
+import { UserController } from "./modules/user/user.controller";
 
 const db = new Database("./ResumeDB.sqlite", { strict: true });
 
-const user = new User(db);
-
-user.createTableIfNotExists();
-
-//user.dropTableIfExists();
-
-//user.insertUsers([
-//  {
-//    id: crypto.randomUUID(),
-//    email: "dante@dmc.com",
-//    password: "123",
-//  },
-//  {
-//    id: crypto.randomUUID(),
-//    email: "vergil@dmc.com",
-//    password: "213",
-//  },
-//  {
-//    id: crypto.randomUUID(),
-//    email: "nero@dmc.com",
-//    password: "321",
-//  },
-//  {
-//    id: crypto.randomUUID(),
-//    email: "v@dmc.com",
-//    password: "1",
-//  },
-//]);
-
-//user.deleteUser("");
-
-//user.updateUser({
-//  id: "",
-//  email: "vedited@dmc.edited",
-//  password: "1",
-//});
-
-//user.getUsers();
-
-//db.close();
+const userService = new UserService(db);
+const userController = new UserController(userService);
 
 // TODO: Create a collection of tokens to add a token to every user
 const isAuthorized = (headers: Headers) => headers.get("authorization");
@@ -58,71 +21,20 @@ const server = Bun.serve({
     const url = new URL(req.url);
     const searchParams = new URLSearchParams(url.search);
 
-    if (method === "GET" && pathname.includes("/api/users")) {
-      const users = user.getUsers();
-      if (!users) return new Response("No users found");
-      return new Response(JSON.stringify(users), {
-        headers: { "Content-Type": "application/json" },
-      });
-    }
+    if (method === "GET" && pathname.includes("/api/users"))
+      return userController.getUsers();
 
-    if (method === "GET" && pathname.includes("/api/get_user")) {
-      const id = searchParams.get("id");
-      if (!id) return new Response("User id not provided", { status: 404 });
+    if (method === "GET" && pathname.includes("/api/get_user"))
+      return userController.getUser(searchParams);
 
-      const found = user.getUserById(id);
-      if (!found) return new Response("User not found", { status: 404 });
+    if (method === "POST" && pathname.includes("/api/create_user"))
+      return await userController.createUser(req);
 
-      return new Response(JSON.stringify(found), {
-        headers: { "Content-Type": "application/json" },
-      });
-    }
+    if (method === "PATCH" && pathname.includes("/api/update_user"))
+      return await userController.updateUser(req);
 
-    if (method === "POST" && pathname.includes("/api/create_user")) {
-      if (!req.body)
-        return new Response("Request body not provided", { status: 404 });
-
-      try {
-        const { id, email, password } = await req.json();
-
-        const newUser = { id, email, password };
-        const inserted = user.insertUser(newUser);
-
-        if (!inserted) return new Response("User couldn't be inserted");
-
-        return new Response("User inserted successfully!", { status: 201 });
-      } catch (error: any) {
-        return new Response(error);
-      }
-    }
-
-    if (method === "PATCH" && pathname.includes("/api/update_user")) {
-      if (!req.body)
-        return new Response("Request body not provided", { status: 404 });
-
-      try {
-        const { id, email, password } = await req.json();
-
-        const dataForUser = { id, email, password };
-        const updatedUser = user.updateUser(dataForUser);
-
-        return new Response(updatedUser, { status: 200 });
-      } catch (error: any) {
-        return new Response(error);
-      }
-    }
-
-    if (method === "DELETE" && pathname.includes("/api/delete_user")) {
-      const id = searchParams.get("id");
-      if (!id) return new Response("User id not provided", { status: 404 });
-
-      const found = user.getUserById(id);
-      if (!found) return new Response("User not found", { status: 404 });
-
-      const deletedUser = user.deleteUser(id);
-
-      return new Response(deletedUser);
-    }
+    if (method === "DELETE" && pathname.includes("/api/delete_user"))
+      return userController.deleteUser(searchParams);
 
     return new Response("Route Not Found", { status: 404 });
   },
