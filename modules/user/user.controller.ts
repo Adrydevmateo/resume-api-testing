@@ -12,14 +12,26 @@ export class UserController {
     });
   }
 
-  getUser(searchParams: URLSearchParams): Response {
+  getUser(headers: Headers, searchParams: URLSearchParams): Response {
     const id = searchParams.get("id");
     if (!id) return new Response("User id not provided", { status: 404 });
 
-    const found = this.userService.getUserById(id);
-    if (!found) return new Response("User not found", { status: 404 });
+    const token = headers.get("authorization");
+    if (!token) return new Response("Token was not provided", { status: 404 });
 
-    return new Response(JSON.stringify(found), {
+    const authorized = this.userService.isAuthorized(id, token);
+    if (!authorized)
+      return new Response("User not authorized", {
+        status: 401,
+        headers: {
+          "WWW-Authenticate": "Bearer 'token'",
+        },
+      });
+
+    const found = this.userService.getUserById(id);
+    if (!found.OK) return new Response(found.msg, { status: found.statusCode });
+
+    return new Response(JSON.stringify(found.data), {
       headers: { "Content-Type": "application/json" },
     });
   }
@@ -48,6 +60,14 @@ export class UserController {
 
     try {
       const { id, email, password } = await req.json();
+      if (!id) return new Response("User id not provided", { status: 404 });
+
+      const token = req.headers.get("authorization");
+      if (!token)
+        return new Response("Token was not provided", { status: 404 });
+
+      const authorized = this.userService.isAuthorized(id, token);
+      if (!authorized) return new Response("User not authorized");
 
       const dataForUser = { id, email, password };
       const updatedUser = this.userService.updateUser(dataForUser);
@@ -69,7 +89,7 @@ export class UserController {
     if (!authorized) return new Response("User not authorized");
 
     const found = this.userService.getUserById(id);
-    if (!found) return new Response("User not found", { status: 404 });
+    if (!found.OK) return new Response(found.msg, { status: found.statusCode });
 
     const deletedUser = this.userService.deleteUser(id);
 

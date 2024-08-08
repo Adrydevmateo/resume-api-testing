@@ -8,12 +8,12 @@ const userService = new UserService(db);
 const userController = new UserController(userService);
 
 // TODO: Create a collection of tokens to add a token to every user
-const isAuthorized = (headers: Headers) => headers.get("authorization");
+//const isAuthorized = (headers: Headers) => headers.get("authorization");
 
 const server = Bun.serve({
   async fetch(req: Request) {
-    if (!isAuthorized(req.headers))
-      return new Response("Unauthorized", { status: 401 });
+    //if (!isAuthorized(req.headers))
+    //  return new Response("Unauthorized", { status: 401 });
 
     const { method } = req;
     const { pathname } = new URL(req.url);
@@ -25,7 +25,7 @@ const server = Bun.serve({
       return userController.getUsers();
 
     if (method === "GET" && pathname.includes("/api/get_user"))
-      return userController.getUser(searchParams);
+      return userController.getUser(req.headers, searchParams);
 
     if (method === "POST" && pathname.includes("/api/create_user"))
       return await userController.createUser(req);

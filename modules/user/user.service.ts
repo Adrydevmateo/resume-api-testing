@@ -1,6 +1,7 @@
 import { Database } from "bun:sqlite";
-import type { TUser } from "./user.types";
+import type { IUserServiceResponse, TUser } from "./user.types";
 
+// TODO: Add a response interface
 export class UserService {
   constructor(private db: Database) {
     this.createTableIfNotExists();
@@ -27,8 +28,8 @@ export class UserService {
   }
 
   isAuthorized(id: string, token: string) {
-    const found: any = this.getUserById(id);
-    if (`Bearer ${found.token}` === token) return true;
+    const found = this.getUserById(id);
+    if (found.data) if (`Bearer ${found.data.token}` === token) return true;
     return false;
   }
 
@@ -38,10 +39,11 @@ export class UserService {
     return result;
   }
 
-  getUserById(id: string) {
+  getUserById(id: string): IUserServiceResponse<TUser> {
     const query = this.db.query("SELECT * FROM User WHERE id = $id");
-    const result = query.get({ id });
-    return result;
+    const result = query.get({ id }) as TUser | null;
+    if (!result) return { OK: false, msg: "User not found", statusCode: 404 };
+    return { OK: true, data: result };
   }
 
   insertUser(user: TUser) {
