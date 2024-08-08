@@ -1,7 +1,7 @@
 import { Database } from "bun:sqlite";
 import type { IUserServiceResponse, TUser } from "./user.types";
 
-// TODO: Add a response interface
+// TODO: Add an ADMIN account
 export class UserService {
   constructor(private db: Database) {
     this.createTableIfNotExists();
@@ -46,19 +46,32 @@ export class UserService {
     return { OK: true, data: result };
   }
 
-  insertUser(user: TUser) {
+  insertUser(user: TUser): IUserServiceResponse<null> {
     const query = this.db.query(
       "INSERT INTO User (id, email, password, token) VALUES ($id, $email, $password, $token)",
     );
-    const data = {
-      ...user,
-      token: crypto.randomUUID(),
-    };
-    const result = query.run(data);
-    return result.changes;
+    user.id = crypto.randomUUID();
+    user.token = crypto.randomUUID();
+    const result = query.run(user);
+    if (!result) return { OK: false, msg: "User not found", statusCode: 404 };
+    return { OK: true, msg: "User inserted successfully!", statusCode: 201 };
   }
 
-  updateUser(user: TUser) {
+  updateUser(user: TUser): IUserServiceResponse<TUser> {
+    const found = this.getUserById(user.id);
+    if (!found.OK || !found.data)
+      return { OK: false, msg: found.msg, statusCode: found.statusCode };
+
+    const data: TUser = {
+      id: user.id,
+      email: user.email,
+      password: user.password,
+    };
+
+    if (user.email === found.data.email) data.email = found.data.email;
+    if (user.password === found.data.password)
+      data.password = found.data.password;
+
     const query = this.db.query(`
       UPDATE User
       SET email = $email, 
@@ -66,29 +79,26 @@ export class UserService {
       WHERE id = $id
     `);
 
-    const found: any = this.getUserById(user.id);
-
-    const data = {
-      id: user.id,
-      email: user.email,
-      password: user.password,
-    };
-
-    if (user.email === found.email) data.email = found.email;
-    if (user.password === found.password) data.password = found.password;
-
     const result = query.run(data);
-    let msg = "User not found";
-    if (result.changes) msg = `User with id(${user.id}) successfully updated!`;
-    return msg;
+    if (!result.changes)
+      return { OK: false, msg: "User data was not updated", statusCode: 400 };
+    return {
+      OK: true,
+      msg: "User data successfully updated!",
+      statusCode: 204,
+    };
   }
 
-  deleteUser(id: string) {
+  deleteUser(id: string): IUserServiceResponse<null> {
     const query = this.db.query("DELETE FROM User WHERE id = $id");
     const result = query.run({ id });
     query.finalize();
-    let msg = `User with id(${id}) was not found`;
-    if (result.changes) msg = `User with id(${id}) has been deleted!`;
-    return msg;
+    if (!result.changes)
+      return { OK: false, msg: "User was not deleted", statusCode: 400 };
+    return {
+      OK: true,
+      msg: "User has been successfully deleted!",
+      statusCode: 204,
+    };
   }
 }

@@ -3,6 +3,22 @@ import type { UserService } from "./user.service";
 export class UserController {
   constructor(private userService: UserService) {}
 
+  checkAuthorization(headers: Headers, id: string) {
+    const token = headers.get("authorization");
+    if (!token) return new Response("Token was not provided", { status: 404 });
+
+    const authorized = this.userService.isAuthorized(id, token);
+    if (!authorized)
+      return new Response("User not authorized", {
+        status: 401,
+        headers: {
+          "WWW-Authenticate": "Bearer 'token'",
+        },
+      });
+
+    return false;
+  }
+
   // TODO: Return only the email
   getUsers(): Response {
     const users = this.userService.getUsers();
@@ -16,17 +32,8 @@ export class UserController {
     const id = searchParams.get("id");
     if (!id) return new Response("User id not provided", { status: 404 });
 
-    const token = headers.get("authorization");
-    if (!token) return new Response("Token was not provided", { status: 404 });
-
-    const authorized = this.userService.isAuthorized(id, token);
-    if (!authorized)
-      return new Response("User not authorized", {
-        status: 401,
-        headers: {
-          "WWW-Authenticate": "Bearer 'token'",
-        },
-      });
+    const unauthorized = this.checkAuthorization(headers, id);
+    if (unauthorized) return unauthorized;
 
     const found = this.userService.getUserById(id);
     if (!found.OK) return new Response(found.msg, { status: found.statusCode });
@@ -41,14 +48,10 @@ export class UserController {
       return new Response("Request body not provided", { status: 404 });
 
     try {
-      const { id, email, password } = await req.json();
-
-      const newUser = { id, email, password };
+      const { email, password } = await req.json();
+      const newUser = { id: "", email, password };
       const inserted = this.userService.insertUser(newUser);
-
-      if (!inserted) return new Response("User couldn't be inserted");
-
-      return new Response("User inserted successfully!", { status: 201 });
+      return new Response(inserted.msg, { status: inserted.statusCode });
     } catch (error: any) {
       return new Response(error);
     }
@@ -62,17 +65,12 @@ export class UserController {
       const { id, email, password } = await req.json();
       if (!id) return new Response("User id not provided", { status: 404 });
 
-      const token = req.headers.get("authorization");
-      if (!token)
-        return new Response("Token was not provided", { status: 404 });
-
-      const authorized = this.userService.isAuthorized(id, token);
-      if (!authorized) return new Response("User not authorized");
+      const unauthorized = this.checkAuthorization(req.headers, id);
+      if (unauthorized) return unauthorized;
 
       const dataForUser = { id, email, password };
       const updatedUser = this.userService.updateUser(dataForUser);
-
-      return new Response(updatedUser, { status: 200 });
+      return new Response(updatedUser.msg, { status: updatedUser.statusCode });
     } catch (error: any) {
       return new Response(error);
     }
@@ -82,17 +80,13 @@ export class UserController {
     const id = searchParams.get("id");
     if (!id) return new Response("User id not provided", { status: 404 });
 
-    const token = headers.get("authorization");
-    if (!token) return new Response("Token was not provided", { status: 404 });
-
-    const authorized = this.userService.isAuthorized(id, token);
-    if (!authorized) return new Response("User not authorized");
+    const unauthorized = this.checkAuthorization(headers, id);
+    if (unauthorized) return unauthorized;
 
     const found = this.userService.getUserById(id);
     if (!found.OK) return new Response(found.msg, { status: found.statusCode });
 
     const deletedUser = this.userService.deleteUser(id);
-
-    return new Response(deletedUser);
+    return new Response(deletedUser.msg, { status: deletedUser.statusCode });
   }
 }
