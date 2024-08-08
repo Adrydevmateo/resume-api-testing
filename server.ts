@@ -1,11 +1,16 @@
 import { Database } from "bun:sqlite";
 import { UserService } from "./modules/user/user.service";
 import { UserController } from "./modules/user/user.controller";
+import { Admin } from "./modules/admin/admin.service";
 
 const db = new Database("./ResumeDB.sqlite", { strict: true });
 
+const admin = new Admin(db);
 const userService = new UserService(db);
 const userController = new UserController(userService);
+
+const getAdminResult = admin.getAdminById("123");
+if (!getAdminResult) admin.insertAdmin({ id: "123", password: "123" });
 
 // TODO: Create a collection of tokens to add a token to every user
 //const isAuthorized = (headers: Headers) => headers.get("authorization");

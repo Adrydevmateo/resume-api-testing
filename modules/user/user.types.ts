@@ -1,4 +1,4 @@
-export type TUserType = "ADMIN" | "COMMON";
+export type TUserType = "admin" | "common";
 
 export type TUser = {
   id: string;
