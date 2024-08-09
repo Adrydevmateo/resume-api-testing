@@ -9,8 +9,20 @@ const admin = new Admin(db);
 const userService = new UserService(db);
 const userController = new UserController(userService);
 
-const getAdminResult = admin.getAdminById("123");
-if (!getAdminResult) admin.insertAdmin({ id: "123", password: "123" });
+function getEnvVar(name: "ADMIN_ID" | "ADMIN_NAME" | "ADMIN_PASSWORD") {
+  const result = process.env[name];
+  if (!result) throw new Error(`${name} NOT FOUND`);
+  return result;
+}
+
+const getAdminResult = admin.getAdminById(getEnvVar("ADMIN_ID"));
+
+if (!getAdminResult)
+  admin.insertAdmin({
+    id: getEnvVar("ADMIN_ID"),
+    name: getEnvVar("ADMIN_NAME"),
+    password: getEnvVar("ADMIN_PASSWORD"),
+  });
 
 // TODO: Create a collection of tokens to add a token to every user
 //const isAuthorized = (headers: Headers) => headers.get("authorization");

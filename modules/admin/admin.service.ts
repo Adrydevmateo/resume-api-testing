@@ -9,6 +9,7 @@ export class Admin {
     const query = this.db.query(
       `CREATE TABLE IF NOT EXISTS Admin (
         id TEXT PRIMARY KEY,
+        name TEXT NOT NULL,
         password TEXT NOT NULL
       )`,
     );
@@ -36,12 +37,21 @@ export class Admin {
     return true;
   }
 
-  insertAdmin({ id, password }: { id: string; password: string }) {
+  insertAdmin({
+    id,
+    name,
+    password,
+  }: {
+    id: string;
+    name: string;
+    password: string;
+  }) {
     const query = this.db.query(
-      "INSERT INTO Admin (id, password) VALUES ($id, $password)",
+      "INSERT INTO Admin (id, name, password) VALUES ($id, $name, $password)",
     );
     const data = {
       id: id,
+      name: name,
       password: password,
     };
     const result = query.run(data);
